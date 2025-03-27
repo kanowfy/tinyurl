@@ -16,14 +16,18 @@ import (
 
 func TestServer(t *testing.T) {
 	mockDB := &mocks.MockDB{}
+	mockCache := &mocks.MockCache{}
 
 	goUrl := "https://go.dev/"
+
+	mockCache.On("Set", mock.Anything, mock.Anything).Return(nil)
+	mockCache.On("Get", mock.Anything).Return("", ErrNotFound)
 
 	mockDB.On("GetUrl", "abcdef").Return("https://go.dev/", nil)
 	mockDB.On("GetUrl", "invalidcode").Return("", ErrNotFound)
 	mockDB.On("CreateShortUrl", mock.Anything, goUrl).Return(nil)
 
-	srv := NewServer(mockDB)
+	srv := NewServer(mockDB, mockCache)
 
 	resp := httptest.NewRecorder()
 	srv.ServeHTTP(resp, newRedirectRequest(t, "abcdef"))
@@ -38,6 +42,9 @@ func TestServer(t *testing.T) {
 	srv.ServeHTTP(resp, newShortenRequest(t, goUrl))
 	assert.Equal(t, http.StatusCreated, resp.Code)
 	mockDB.AssertCalled(t, "CreateShortUrl", mock.Anything, goUrl)
+	mockCache.AssertNumberOfCalls(t, "Get", 2)
+	mockCache.AssertNumberOfCalls(t, "Set", 1)
+	mockCache.AssertCalled(t, "Get", "abcdef")
 }
 
 func newShortenRequest(t testing.TB, longUrl string) *http.Request {

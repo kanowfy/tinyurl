@@ -16,11 +16,12 @@ const (
 
 type Server struct {
 	http.Handler
-	db DB
+	db    DB
+	cache Cache
 }
 
-func NewServer(db DB) *Server {
-	srv := &Server{db: db}
+func NewServer(db DB, cache Cache) *Server {
+	srv := &Server{db: db, cache: cache}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{code}", srv.handleRedirect)
@@ -34,7 +35,13 @@ func NewServer(db DB) *Server {
 func (s *Server) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
 
-	url, err := s.db.GetUrl(code)
+	url, err := s.cache.Get(code)
+	if err == nil {
+		http.Redirect(w, r, url, http.StatusMovedPermanently)
+		return
+	}
+
+	url, err = s.db.GetUrl(code)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			http.NotFound(w, r)
@@ -43,6 +50,8 @@ func (s *Server) handleRedirect(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	s.cache.Set(code, url)
 
 	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
