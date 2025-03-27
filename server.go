@@ -68,6 +68,7 @@ func (s *Server) handleShorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(code))
 }
 
 func generateShortCode() (string, error) {

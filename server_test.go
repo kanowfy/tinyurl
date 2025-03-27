@@ -46,7 +46,6 @@ func newShortenRequest(t testing.TB, longUrl string) *http.Request {
 	formData := url.Values{}
 	formData.Set("long_url", longUrl)
 	encoded := formData.Encode()
-	t.Logf("form data: %v", encoded)
 
 	req, err := http.NewRequest(http.MethodPost, "/shorten", strings.NewReader(encoded))
 	require.NoError(t, err)
