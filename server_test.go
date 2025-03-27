@@ -21,7 +21,7 @@ func TestServer(t *testing.T) {
 	goUrl := "https://go.dev/"
 
 	mockCache.On("Set", mock.Anything, mock.Anything).Return(nil)
-	mockCache.On("Get", mock.Anything).Return("", ErrNotFound)
+	mockCache.On("Get", mock.Anything).Return("", ErrNotInCache)
 
 	mockDB.On("GetUrl", "abcdef").Return("https://go.dev/", nil)
 	mockDB.On("GetUrl", "invalidcode").Return("", ErrNotFound)
