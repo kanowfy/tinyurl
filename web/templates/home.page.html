@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../static/logo.png?id=69" type="image/x-icon">
+    <link rel="stylesheet" href="../static/output.css?id=1234">
+    <script src="../static/htmx.min.js"></script>
+    <title>Tini</title>
+</head>
+
+<body class="max-w-5xl mx-auto h-screen border-x-2 bg-orange-50">
+    <div class="flex justify-center items-center flex-col h-full">
+        <section>
+            <div class="font-bold text-8xl text-orange-600">
+                Tini
+            </div>
+        </section>
+        <section>
+            <form id="urlform" class="flex flex-col m-7 px-12 pt-7 pb-10 border-2 text-lg space-y-3 min-w-md">
+                <label for="url">🔗 Shorten your long link:</label>
+                <input type="text" name="long_url" id="url" placeholder="Enter your long url..."
+                    class="border-2 px-4 py-2 outline-none">
+                <div id="error" class="text-red-500 text-sm font-bold">Invalid URL</div>
+
+
+                <input type="submit" value="Shorten URL"
+                    class="py-3 cursor-pointer border-2 border-black bg-orange-500 hover:bg-orange-400">
+            </form>
+            <div id="resultContainer" class="flex flex-col m-7 px-12 pt-7 pb-10 border-2 text-lg space-y-3 min-w-md">
+                <label for="url">🔗 Your shortened link:</label>
+                <div id="result" class="border-2 px-4 py-2"></div>
+                <div class="flex justify-center space-x-2 w-full">
+                    <a id="visit" target="_blank"
+                        class="py-3 cursor-pointer px-4 border-2 border-black bg-green-500 hover:bg-green-400">Visit</a>
+                        <button id="copy" onclick="showcopied()"
+                            class="py-3 cursor-pointer px-4 bg-black text-orange-50 hover:bg-gray-800">Copy</button>
+                        <span id="tooltip" class="tooltip">Copied!</span>
+                    <button id="nextBtn"
+                        class="py-3 cursor-pointer px-4 border-2 border-black bg-orange-500 hover:bg-orange-400">Shorten
+                        another </button>
+                </div>
+            </div>
+        </section>
+    </div>
+    <script>
+        const resultContainer = document.getElementById("resultContainer");
+        resultContainer.style.display = "none";
+        const errContainer = document.getElementById("error");
+        errContainer.style.display = "none";
+
+        document.getElementById("urlform").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            const data = "?long_url=" + formData.get("long_url");
+
+            try {
+                const response = await fetch("/shorten" + data, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "x-www-form-urlencoded"
+                    }
+                })
+
+                const respText = await response.text();
+                if (response.ok) {
+                    const shortened = window.location.origin + "/" + respText;
+
+                    document.getElementById("result").innerHTML = shortened;
+                    document.getElementById("visit").setAttribute("href", shortened);
+                    document.getElementById("copy").addEventListener("click", async function (e) {
+                        await navigator.clipboard.writeText(shortened);
+                    })
+
+                    document.getElementById("urlform").style.display = "none";
+                    resultContainer.style.display = "flex";
+
+                } else {
+                    errContainer.style.display = "block";
+                }
+
+            } catch (err) {
+                alert(err);
+            }
+        })
+
+        document.getElementById("nextBtn").addEventListener("click", function (e) {
+            document.getElementById("urlform").style.display = "flex";
+            resultContainer.style.display = "none";
+            errContainer.style.display = "none";
+        })
+
+        function showcopied() {
+            const tooltip = document.getElementById("tooltip");
+            tooltip.classList.add("show");
+            setTimeout(() => {
+                tooltip.classList.remove("show");
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>

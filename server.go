@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"text/template"
 )
 
 const (
@@ -24,12 +25,27 @@ func NewServer(db DB, cache Cache) *Server {
 	srv := &Server{db: db, cache: cache}
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /", srv.handleHome)
 	mux.HandleFunc("GET /{code}", srv.handleRedirect)
 	mux.HandleFunc("POST /shorten", srv.handleShorten)
+
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	srv.Handler = mux
 
 	return srv
+}
+
+func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	tpl, err := template.ParseFiles("./web/templates/home.page.html")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("parse template: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tpl.Execute(w, nil); err != nil {
+		http.Error(w, fmt.Sprintf("execute template: %v", err), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleRedirect(w http.ResponseWriter, r *http.Request) {
