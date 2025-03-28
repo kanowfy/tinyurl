@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -90,6 +91,11 @@ func (s *Server) handleShorten(w http.ResponseWriter, r *http.Request) {
 	if err := s.db.CreateShortUrl(code, url); err != nil {
 		http.Error(w, fmt.Sprintf("error saving url: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	// newly created url is likely to be accessed soon
+	if err := s.cache.Set(code, url); err != nil {
+		slog.Error("failed to set to cache", slog.String("error", err.Error()))
 	}
 
 	w.WriteHeader(http.StatusCreated)
