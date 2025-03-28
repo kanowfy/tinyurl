@@ -23,7 +23,7 @@ func TestServer(t *testing.T) {
 	mockCache.On("Set", mock.Anything, mock.Anything).Return(nil)
 	mockCache.On("Get", mock.Anything).Return("", ErrNotInCache)
 
-	mockDB.On("GetUrl", "abcdef").Return("https://go.dev/", nil)
+	mockDB.On("GetUrl", "abcdef").Return(goUrl, nil)
 	mockDB.On("GetUrl", "invalidcode").Return("", ErrNotFound)
 	mockDB.On("CreateShortUrl", mock.Anything, goUrl).Return(nil)
 
@@ -43,7 +43,7 @@ func TestServer(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, resp.Code)
 	mockDB.AssertCalled(t, "CreateShortUrl", mock.Anything, goUrl)
 	mockCache.AssertNumberOfCalls(t, "Get", 2)
-	mockCache.AssertNumberOfCalls(t, "Set", 1)
+	mockCache.AssertNumberOfCalls(t, "Set", 2)
 	mockCache.AssertCalled(t, "Get", "abcdef")
 }
 
