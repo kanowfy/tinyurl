@@ -16,6 +16,7 @@ var (
 type DB interface {
 	GetUrl(code string) (string, error)
 	CreateShortUrl(code string, url string) error
+	GetCodeIfUrlExists(url string) (string, bool)
 }
 
 type PostgresDB struct {
@@ -44,11 +45,22 @@ func (p *PostgresDB) GetUrl(code string) (string, error) {
 
 func (p *PostgresDB) CreateShortUrl(code string, url string) error {
 	stmt := "INSERT INTO urls (code, long_url) VALUES ($1, $2)"
-
 	_, err := p.dbpool.Exec(context.Background(), stmt, code, url)
 	if err != nil {
 		return fmt.Errorf("insert into db: %w", err)
 	}
 
 	return nil
+}
+
+func (p *PostgresDB) GetCodeIfUrlExists(url string) (string, bool) {
+	var code string
+	stmt := "SELECT code FROM urls WHERE long_url = $1"
+
+	err := p.dbpool.QueryRow(context.Background(), stmt, url).Scan(&code)
+	if err != nil {
+		return "", false
+	}
+
+	return code, true
 }

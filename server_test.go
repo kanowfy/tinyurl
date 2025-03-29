@@ -26,6 +26,8 @@ func TestServer(t *testing.T) {
 	mockDB.On("GetUrl", "abcdef").Return(goUrl, nil)
 	mockDB.On("GetUrl", "invalidcode").Return("", ErrNotFound)
 	mockDB.On("CreateShortUrl", mock.Anything, goUrl).Return(nil)
+	//TODO: test for existing url
+	mockDB.On("GetCodeIfUrlExists", mock.Anything).Return("", false)
 
 	srv := NewServer(mockDB, mockCache)
 

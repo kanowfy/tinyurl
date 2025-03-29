@@ -15,3 +15,8 @@ func (d *MockDB) CreateShortUrl(code string, url string) error {
 	args := d.Called(code, url)
 	return args.Error(0)
 }
+
+func (d *MockDB) GetCodeIfUrlExists(url string) (string, bool) {
+	args := d.Called(url)
+	return args.String(0), args.Bool(1)
+}

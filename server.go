@@ -82,6 +82,13 @@ func (s *Server) handleShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// reduce duplicate shorten requests, can take a step further by normalizing url before insert
+	code, ok := s.db.GetCodeIfUrlExists(url)
+	if ok {
+		writeShortenResponse(w, code)
+		return
+	}
+
 	code, err := generateShortCode()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error creating shortened url: %v", err), http.StatusInternalServerError)
@@ -98,6 +105,10 @@ func (s *Server) handleShorten(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to set to cache", slog.String("error", err.Error()))
 	}
 
+	writeShortenResponse(w, code)
+}
+
+func writeShortenResponse(w http.ResponseWriter, code string) {
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(code))
 }
