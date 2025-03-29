@@ -45,6 +45,8 @@ func main() {
 
 	stdDB := stdlib.OpenDBFromPool(pgpool)
 
+	goose.SetBaseFS(tinyurl.MigrationsFS)
+
 	if err := goose.Up(stdDB, "migrations"); err != nil {
 		panic(err)
 	}
