@@ -39,14 +39,13 @@ func NewServer(db DB, cache Cache, rateLimiter RateLimiter) *Server {
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	tpl, err := template.ParseFiles("./web/templates/home.page.html")
-	if err != nil {
-		http.Error(w, fmt.Sprintf("parse template: %v", err), http.StatusInternalServerError)
-		return
+	files := []string{
+		"./web/templates/base.layout.html",
+		"./web/templates/home.page.html",
 	}
 
-	if err := tpl.Execute(w, nil); err != nil {
-		http.Error(w, fmt.Sprintf("execute template: %v", err), http.StatusInternalServerError)
+	if err := s.renderPage(w, files); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -62,7 +61,7 @@ func (s *Server) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	url, err = s.db.GetUrl(code)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			http.NotFound(w, r)
+			s.handleNotFound(w)
 		} else {
 			http.Error(w, fmt.Sprintf("error getting long form url: %v", err), http.StatusInternalServerError)
 		}
@@ -109,6 +108,17 @@ func (s *Server) handleShorten(w http.ResponseWriter, r *http.Request) {
 	writeShortenResponse(w, code)
 }
 
+func (s *Server) handleNotFound(w http.ResponseWriter) {
+	files := []string{
+		"./web/templates/base.layout.html",
+		"./web/templates/notfound.page.html",
+	}
+
+	if err := s.renderPage(w, files); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func writeShortenResponse(w http.ResponseWriter, code string) {
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(code))
@@ -142,6 +152,19 @@ func validateUrl(longUrl string) error {
 
 	if parsed.Host == "" {
 		return fmt.Errorf("invalid host")
+	}
+
+	return nil
+}
+
+func (s *Server) renderPage(w http.ResponseWriter, templateFiles []string) error {
+	tpl, err := template.ParseFiles(templateFiles...)
+	if err != nil {
+		return fmt.Errorf("parse template: %v", err)
+	}
+
+	if err := tpl.ExecuteTemplate(w, "base", nil); err != nil {
+		return fmt.Errorf("execute template: %v", err)
 	}
 
 	return nil

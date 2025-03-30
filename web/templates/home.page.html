@@ -1,23 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="../static/logo.png?id=69" type="image/x-icon">
-    <link rel="stylesheet" href="../static/output.css?id=1234">
-    <script src="../static/htmx.min.js"></script>
-    <title>Tini</title>
-</head>
-
-<body class="max-w-5xl mx-auto h-screen border-x-2 bg-orange-50">
-    <div class="flex justify-center items-center flex-col h-full">
-        <section>
-            <div class="font-bold text-8xl text-orange-600">
-                Tini
-            </div>
-        </section>
-        <section>
+{{define "main"}}
             <form id="urlform" class="flex flex-col m-7 px-12 pt-7 pb-10 border-2 text-lg space-y-3 min-w-md">
                 <label for="url">🔗 Shorten your long link:</label>
                 <input type="text" name="long_url" id="url" placeholder="Enter your long url..."
@@ -42,8 +23,9 @@
                         another </button>
                 </div>
             </div>
-        </section>
-    </div>
+{{end}}
+
+{{define "script"}}
     <script>
         const resultContainer = document.getElementById("resultContainer");
         resultContainer.style.display = "none";
@@ -111,6 +93,4 @@
             }, 1000);
         }
     </script>
-</body>
-
-</html>
+    {{end}}
