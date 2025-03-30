@@ -22,7 +22,7 @@
                 <label for="url">🔗 Shorten your long link:</label>
                 <input type="text" name="long_url" id="url" placeholder="Enter your long url..."
                     class="border-2 px-4 py-2 outline-none">
-                <div id="error" class="text-red-500 text-sm font-bold">Invalid URL</div>
+                <div id="error" class="text-red-500 text-sm font-bold"></div>
 
 
                 <input type="submit" value="Shorten URL"
@@ -80,10 +80,20 @@
 
                 } else {
                     errContainer.style.display = "block";
+                    switch (response.status) {
+                        case 400:
+                            errContainer.innerHTML = "Invalid URL";
+                            break;
+                        case 429:
+                            errContainer.innerHTML = "Requesting too fast, wait and try again";
+                            break;
+                        default:
+                            throw new Error("unexpected error: " + respText);
+                    }
                 }
-
             } catch (err) {
                 alert(err);
+                console.log(err);
             }
         })
 

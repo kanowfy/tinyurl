@@ -29,11 +29,11 @@ func NewServer(db DB, cache Cache, rateLimiter RateLimiter) *Server {
 
 	mux.HandleFunc("GET /", srv.handleHome)
 	mux.HandleFunc("GET /{code}", srv.handleRedirect)
-	mux.HandleFunc("POST /shorten", srv.handleShorten)
+	mux.Handle("POST /shorten", srv.rateLimitMiddleware(http.HandlerFunc(srv.handleShorten)))
 
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
-	srv.Handler = srv.rateLimitMiddleware(mux)
+	srv.Handler = mux
 
 	return srv
 }
