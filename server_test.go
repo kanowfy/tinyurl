@@ -14,16 +14,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var dummyRateLimiter *DummyRateLimiter
+
 func TestServer(t *testing.T) {
 	mockDB := &mocks.MockDB{}
+	mockCache := &mocks.MockCache{}
 
 	goUrl := "https://go.dev/"
 
-	mockDB.On("GetUrl", "abcdef").Return("https://go.dev/", nil)
+	mockCache.On("Set", mock.Anything, mock.Anything).Return(nil)
+	mockCache.On("Get", mock.Anything).Return("", ErrNotInCache)
+
+	mockDB.On("GetUrl", "abcdef").Return(goUrl, nil)
 	mockDB.On("GetUrl", "invalidcode").Return("", ErrNotFound)
 	mockDB.On("CreateShortUrl", mock.Anything, goUrl).Return(nil)
+	//TODO: test for existing url
+	mockDB.On("GetCodeIfUrlExists", mock.Anything).Return("", false)
 
-	srv := NewServer(mockDB)
+	srv := NewServer(mockDB, mockCache, dummyRateLimiter)
 
 	resp := httptest.NewRecorder()
 	srv.ServeHTTP(resp, newRedirectRequest(t, "abcdef"))
@@ -38,6 +46,9 @@ func TestServer(t *testing.T) {
 	srv.ServeHTTP(resp, newShortenRequest(t, goUrl))
 	assert.Equal(t, http.StatusCreated, resp.Code)
 	mockDB.AssertCalled(t, "CreateShortUrl", mock.Anything, goUrl)
+	mockCache.AssertNumberOfCalls(t, "Get", 2)
+	mockCache.AssertNumberOfCalls(t, "Set", 2)
+	mockCache.AssertCalled(t, "Get", "abcdef")
 }
 
 func newShortenRequest(t testing.TB, longUrl string) *http.Request {
@@ -46,7 +57,6 @@ func newShortenRequest(t testing.TB, longUrl string) *http.Request {
 	formData := url.Values{}
 	formData.Set("long_url", longUrl)
 	encoded := formData.Encode()
-	t.Logf("form data: %v", encoded)
 
 	req, err := http.NewRequest(http.MethodPost, "/shorten", strings.NewReader(encoded))
 	require.NoError(t, err)
@@ -73,4 +83,14 @@ func assertLocation(t testing.TB, resp *httptest.ResponseRecorder, longUrl strin
 	if loc != longUrl {
 		t.Errorf("wrong redirect location, want %q got %q", longUrl, loc)
 	}
+}
+
+type DummyRateLimiter struct{}
+
+func (d *DummyRateLimiter) Allow(ip string) bool {
+	return true
+}
+
+func (d *DummyRateLimiter) Enabled() bool {
+	return false
 }

@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
+	"text/template"
 )
 
 const (
@@ -16,33 +18,57 @@ const (
 
 type Server struct {
 	http.Handler
-	db DB
+	db          DB
+	cache       Cache
+	rateLimiter RateLimiter
 }
 
-func NewServer(db DB) *Server {
-	srv := &Server{db: db}
+func NewServer(db DB, cache Cache, rateLimiter RateLimiter) *Server {
+	srv := &Server{db: db, cache: cache, rateLimiter: rateLimiter}
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /", srv.handleHome)
 	mux.HandleFunc("GET /{code}", srv.handleRedirect)
-	mux.HandleFunc("POST /shorten", srv.handleShorten)
+	mux.Handle("POST /shorten", srv.rateLimitMiddleware(http.HandlerFunc(srv.handleShorten)))
+
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	srv.Handler = mux
 
 	return srv
 }
 
+func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	files := []string{
+		"./web/templates/base.layout.html",
+		"./web/templates/home.page.html",
+	}
+
+	if err := s.renderPage(w, files); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func (s *Server) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
 
-	url, err := s.db.GetUrl(code)
+	url, err := s.cache.Get(code)
+	if err == nil {
+		http.Redirect(w, r, url, http.StatusMovedPermanently)
+		return
+	}
+
+	url, err = s.db.GetUrl(code)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			http.NotFound(w, r)
+			s.handleNotFound(w)
 		} else {
 			http.Error(w, fmt.Sprintf("error getting long form url: %v", err), http.StatusInternalServerError)
 		}
 		return
 	}
+
+	s.cache.Set(code, url)
 
 	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
@@ -53,6 +79,13 @@ func (s *Server) handleShorten(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("long_url")
 	if err := validateUrl(url); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// reduce duplicate shorten requests, can take a step further by normalizing url before insert
+	code, ok := s.db.GetCodeIfUrlExists(url)
+	if ok {
+		writeShortenResponse(w, code)
 		return
 	}
 
@@ -67,7 +100,28 @@ func (s *Server) handleShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// newly created url is likely to be accessed soon
+	if err := s.cache.Set(code, url); err != nil {
+		slog.Error("failed to set to cache", slog.String("error", err.Error()))
+	}
+
+	writeShortenResponse(w, code)
+}
+
+func (s *Server) handleNotFound(w http.ResponseWriter) {
+	files := []string{
+		"./web/templates/base.layout.html",
+		"./web/templates/notfound.page.html",
+	}
+
+	if err := s.renderPage(w, files); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func writeShortenResponse(w http.ResponseWriter, code string) {
 	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(code))
 }
 
 func generateShortCode() (string, error) {
@@ -98,6 +152,19 @@ func validateUrl(longUrl string) error {
 
 	if parsed.Host == "" {
 		return fmt.Errorf("invalid host")
+	}
+
+	return nil
+}
+
+func (s *Server) renderPage(w http.ResponseWriter, templateFiles []string) error {
+	tpl, err := template.ParseFiles(templateFiles...)
+	if err != nil {
+		return fmt.Errorf("parse template: %v", err)
+	}
+
+	if err := tpl.ExecuteTemplate(w, "base", nil); err != nil {
+		return fmt.Errorf("execute template: %v", err)
 	}
 
 	return nil

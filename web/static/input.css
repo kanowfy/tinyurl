@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+.tooltip {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: black;
+    border-radius: 4px;
+    color: white;
+    padding: 5px 8px;
+    font-size: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    white-space: nowarp;
+}
+
+.tooltip.show{
+    opacity: 1;
+    visibility: visible;
+}
