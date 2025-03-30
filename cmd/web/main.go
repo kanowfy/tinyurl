@@ -16,9 +16,16 @@ import (
 )
 
 type config struct {
-	Port      int    `env:"PORT" envDefault:"8080"`
+	Port int `env:"PORT" envDefault:"8080"`
+
 	DbAddr    string `env:"DB_ADDR"`
 	CacheAddr string `env:"CACHE_ADDR"`
+
+	RateLimiter struct {
+		MaxRequestRate    float64 `env:"MAX_REQUEST_RATE" envDefault:"10"`
+		RequestBurstLimit int     `env:"REQUEST_BURST_LIMIT" envDefault:"5"`
+		Enabled           bool    `env:"RATE_LIMITER_ENABLED" envDefault:"false"`
+	}
 }
 
 func loadConfig() (config, error) {
@@ -55,7 +62,11 @@ func main() {
 		Addr: cfg.CacheAddr,
 	})
 
-	srv := tinyurl.NewServer(tinyurl.NewPostgresDB(pgpool), tinyurl.NewRedisCache(rdclient))
+	postgresDB := tinyurl.NewPostgresDB(pgpool)
+	redisCache := tinyurl.NewRedisCache(rdclient)
+	rateLimiter := tinyurl.NewTokenBucketRateLimiter(cfg.RateLimiter.MaxRequestRate, cfg.RateLimiter.RequestBurstLimit, cfg.RateLimiter.Enabled)
+
+	srv := tinyurl.NewServer(postgresDB, redisCache, rateLimiter)
 
 	log.Printf("listening on port %d\n", cfg.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), srv))

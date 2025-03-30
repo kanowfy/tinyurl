@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var dummyRateLimiter *DummyRateLimiter
+
 func TestServer(t *testing.T) {
 	mockDB := &mocks.MockDB{}
 	mockCache := &mocks.MockCache{}
@@ -29,7 +31,7 @@ func TestServer(t *testing.T) {
 	//TODO: test for existing url
 	mockDB.On("GetCodeIfUrlExists", mock.Anything).Return("", false)
 
-	srv := NewServer(mockDB, mockCache)
+	srv := NewServer(mockDB, mockCache, dummyRateLimiter)
 
 	resp := httptest.NewRecorder()
 	srv.ServeHTTP(resp, newRedirectRequest(t, "abcdef"))
@@ -81,4 +83,14 @@ func assertLocation(t testing.TB, resp *httptest.ResponseRecorder, longUrl strin
 	if loc != longUrl {
 		t.Errorf("wrong redirect location, want %q got %q", longUrl, loc)
 	}
+}
+
+type DummyRateLimiter struct{}
+
+func (d *DummyRateLimiter) Allow(ip string) bool {
+	return true
+}
+
+func (d *DummyRateLimiter) Enabled() bool {
+	return false
 }

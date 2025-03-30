@@ -18,12 +18,13 @@ const (
 
 type Server struct {
 	http.Handler
-	db    DB
-	cache Cache
+	db          DB
+	cache       Cache
+	rateLimiter RateLimiter
 }
 
-func NewServer(db DB, cache Cache) *Server {
-	srv := &Server{db: db, cache: cache}
+func NewServer(db DB, cache Cache, rateLimiter RateLimiter) *Server {
+	srv := &Server{db: db, cache: cache, rateLimiter: rateLimiter}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", srv.handleHome)
@@ -32,7 +33,7 @@ func NewServer(db DB, cache Cache) *Server {
 
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
-	srv.Handler = mux
+	srv.Handler = srv.rateLimitMiddleware(mux)
 
 	return srv
 }

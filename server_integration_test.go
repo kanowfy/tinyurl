@@ -80,7 +80,7 @@ func TestServer_Integration(t *testing.T) {
 	db, cache, clean := setupDB(t)
 	defer clean()
 
-	srv := NewServer(db, cache)
+	srv := NewServer(db, cache, dummyRateLimiter)
 
 	longUrl := "https://go.dev/"
 
