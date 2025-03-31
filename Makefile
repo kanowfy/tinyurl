@@ -1,6 +1,16 @@
 .PHONY: run
 run:
-	go run ./cmd/web
+	DEBUG=1 go run ./cmd/web
+
+.PHONY: host
+host:
+	@docker compose up -d
+
+.PHONY: buildhost
+buildhost:
+	@docker compose down
+	@docker rmi tinyurl-tini
+	@docker compose up -d
 
 .PHONY: test
 test:

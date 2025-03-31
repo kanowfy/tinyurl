@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,7 +30,13 @@ type config struct {
 }
 
 func loadConfig() (config, error) {
-	godotenv.Load()
+	debug := os.Getenv("DEBUG")
+	if debug == "1" {
+		godotenv.Load(".env.local")
+	} else {
+		godotenv.Load()
+	}
+
 	var cfg config
 	if err := env.Parse(&cfg); err != nil {
 		return config{}, fmt.Errorf("load environment variables: %w", err)
