@@ -1,6 +1,7 @@
 {{define "base"}}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,7 @@
     <title>Tini</title>
 </head>
 
-<body class="max-w-5xl mx-auto h-screen border-x-2 bg-orange-50">
+<body class="max-w-5xl mx-auto h-screen xl:border-x-2 bg-orange-50">
     <div class="flex justify-center items-center flex-col h-full">
         <section>
             <div class="font-bold text-8xl text-orange-600">
@@ -20,8 +21,25 @@
         <section>
             {{template "main" .}}
         </section>
+        <footer class="absolute bottom-1 font-mono text-xs md:text-sm">
+            <div class="flex items-center space-x-2 mx-3">
+                <div class="pb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-code-xml-icon lucide-code-xml">
+                        <path d="m18 16 4-4-4-4" />
+                        <path d="m6 8-4 4 4 4" />
+                        <path d="m14.5 4-5 16" />
+                    </svg>
+                </div>
+                <p>Made by <a href="https://github.com/kanowfy" target="_blank" class="underline">Dung Nguyen</a>.
+                    Source code at <a href="https://github.com/kanowfy/tinyurl" target="_blank"
+                        class="underline">Github</a> </p>
+            </div>
+        </footer>
     </div>
     {{template "script" .}}
 </body>
+
 </html>
 {{end}}
